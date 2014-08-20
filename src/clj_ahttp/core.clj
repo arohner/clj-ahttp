@@ -39,7 +39,7 @@ options
        (into {})))
 
 (defn request
-  "Makes an async http request. Behaves mostly like clj-http, except the return type is
+  "Makes an async http request. Behaves like clj-http, except the return type is
 
  {:status (promise Int)
   :headers (promise {})
@@ -47,7 +47,7 @@ options
 
 A response is returned immediately, potentially even before the server has sent a status.
 
-The response map also contains a key, :abort! whose value is a fn of no arguments. Call it to abort processing.
+The response map also contains a key, :abort!, a fn of no arguments. Call it to abort processing.
  "
   [{:keys [] :as args}]
   (let [c (AsyncHttpClient.)
