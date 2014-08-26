@@ -32,7 +32,7 @@ options
   (let [c (AsyncHttpClient.)]
     (.executeRequest c (build-request args))))
 
-(defn response-headers->map [rh]
+(defn response-headers->map [^HttpResponseHeaders rh]
   (->> (.getHeaders rh)
        (map (fn [[k v]]
               [k (first v)]))
