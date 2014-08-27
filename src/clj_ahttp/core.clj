@@ -56,11 +56,13 @@ options
 (defn request
   "Makes an async http request. Behaves like clj-http, except the return type is
 
- {:status (promise Int)
-  :headers (promise {})
+ {:status (async/chan Int)
+  :headers (asnyc/chan {})
   :body java.nio.channels.ReadableByteChannel}
 
-A response is returned immediately, potentially even before the server has sent a status.
+:status and :headers will only ever receive one value each.
+
+A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
 The response map also contains a key, :abort!, a fn of no arguments. Call it to abort processing.
 
@@ -87,10 +89,10 @@ The body channel should be (.close)'d when done. Failing to close can lead to ha
                          (errorf throwable "error during request")
                          (throw throwable))
                        (onStatusReceived [this s]
-                         (deliver status (.getStatusCode s))
+                         (a/put! status (.getStatusCode s))
                          (return-state))
                        (onHeadersReceived [this h]
-                         (deliver headers (response-headers->map h))
+                         (a/put! headers (response-headers->map h))
                          (return-state))
                        (onBodyPartReceived [this body-part]
                          (let [buf (.getBodyByteBuffer body-part)
@@ -105,7 +107,7 @@ The body channel should be (.close)'d when done. Failing to close can lead to ha
 (defn drain-resp
   "Convert to a normal clj-http-style response"
   [resp]
-  (let [len (-> resp :headers deref (clojure.core/get "Content-Length") (#(Long/parseLong %)))
+  (let [len (-> resp :headers a/<!! (clojure.core/get "Content-Length") (#(Long/parseLong %)))
         body-chan (-> resp :body)
         buf (ByteBuffer/allocate (* 2 len))]
     (loop []
