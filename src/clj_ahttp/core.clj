@@ -4,6 +4,8 @@
             [clojure.core.async :as a]
             [clojure.tools.logging :refer (infof errorf)])
   (:import (com.ning.http.client AsyncHttpClient
+                                 AsyncHttpClientConfig
+                                 AsyncHttpClientConfig$Builder
                                  AsyncHandler
                                  AsyncHandler$STATE
                                  RequestBuilder
@@ -43,7 +45,13 @@ options
        (into {})))
 
 
-(def client (AsyncHttpClient.))
+(defn client-config []
+  (let [builder (AsyncHttpClientConfig$Builder.)]
+    (doto builder
+      (.setIdleConnectionInPoolTimeoutInMs 1))
+    (.build builder)))
+
+(def client (AsyncHttpClient. (client-config)))
 
 (defn request
   "Makes an async http request. Behaves like clj-http, except the return type is
@@ -55,10 +63,11 @@ options
 A response is returned immediately, potentially even before the server has sent a status.
 
 The response map also contains a key, :abort!, a fn of no arguments. Call it to abort processing.
- "
-  [{:keys [] :as args}]
-  (let [status (promise)
-        headers (promise)
+
+The body channel should be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests."
+  [{:keys [handler] :as args}]
+  (let [status (a/chan 1)
+        headers (a/chan 1)
         pipe (Pipe/open)
         source (.source pipe)
         sink (.sink pipe)
