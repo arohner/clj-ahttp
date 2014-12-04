@@ -54,22 +54,26 @@ options
 (def client (AsyncHttpClient. (client-config)))
 
 (defn request
-  "Makes an async http request. Behaves like clj-http, except the return type is
+  "Makes an async http request. Behaves similar to clj-http, except the return type is
 
- {:status (async/chan Int)
-  :headers (asnyc/chan {})
-  :body java.nio.channels.ReadableByteChannel}
+ {:status (promise Int)
+  :headers (promise {String String})
+  :completed (promise Bool)
+  :body java.nio.channels.ReadableByteChannel
+  :abort! (fn [])}
 
-:status and :headers will only ever receive one value each.
+  :status and :headers will only ever receive one value each.
 
-A response map is returned immediately, potentially even before the server has sent an HTTP status.
+  A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
-The response map also contains a key, :abort!, a fn of no arguments. Call it to abort processing.
+  the key :abort! is a fn of no arguments. Call it to abort this request.
 
-The body channel should be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests."
-  [{:keys [handler] :as args}]
-  (let [status (a/chan 1)
-        headers (a/chan 1)
+  The body channel must be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests."
+
+  [{:keys [request-method uri] :as args}]
+  (let [status (promise)
+        headers (promise)
+        completed (promise)
         pipe (Pipe/open)
         source (.source pipe)
         sink (.sink pipe)
@@ -82,17 +86,18 @@ The body channel should be (.close)'d when done. Failing to close can lead to ha
               :headers headers
               :body source
               :abort! (fn []
-                        (swap! abort (constantly true)))}]
+                        (swap! abort (constantly true)))
+              :completed completed}]
     (.executeRequest ^AsyncHttpClient client (build-request args)
                      (reify AsyncHandler
                        (onThrowable [this throwable]
                          (errorf throwable "error during request")
                          (throw throwable))
                        (onStatusReceived [this s]
-                         (a/put! status (.getStatusCode s))
+                         (deliver status (.getStatusCode s))
                          (return-state))
                        (onHeadersReceived [this h]
-                         (a/put! headers (response-headers->map h))
+                         (deliver headers (response-headers->map h))
                          (return-state))
                        (onBodyPartReceived [this body-part]
                          (let [buf (.getBodyByteBuffer body-part)
@@ -101,7 +106,8 @@ The body channel should be (.close)'d when done. Failing to close can lead to ha
                            (assert (= written buf-len)))
                          (return-state))
                        (onCompleted [this]
-                         (.close sink))))
+                         (.close sink)
+                         (deliver completed true))))
     resp))
 
 (defn drain-resp
