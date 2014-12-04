@@ -44,8 +44,7 @@ options
               [k (first v)]))
        (into {})))
 
-
-(defn client-config []
+(defn ^AsyncHttpClientConfig client-config []
   (let [builder (AsyncHttpClientConfig$Builder.)]
     (doto builder
       (.setIdleConnectionInPoolTimeoutInMs 1))
@@ -114,10 +113,10 @@ options
   "Convert to a normal clj-http-style response"
   [resp]
   (let [len (-> resp :headers a/<!! (clojure.core/get "Content-Length") (#(Long/parseLong %)))
-        body-chan (-> resp :body)
+        ^ReadableByteChannel body-chan (-> resp :body)
         buf (ByteBuffer/allocate (* 2 len))]
     (loop []
-      (let [ret (.read ^ReadableByteChannel body-chan buf)]
+      (let [ret (.read body-chan buf)]
         (if (.hasRemaining buf)
           (if (= ret -1)
             (do
