@@ -29,11 +29,7 @@
                               body-chan]}])
 
 (defn request
-  "Async HTTP request. Mostly compatible w/ clj-http.
-
-options
-:output - allowed options are :future, :async
-"
+  "Async HTTP request. Mostly compatible w/ clj-http."
   [{:keys [uri request-method headers] :as args}]
   (let [c (AsyncHttpClient.)]
     (.executeRequest c (build-request args))))
