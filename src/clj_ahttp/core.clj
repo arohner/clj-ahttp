@@ -2,7 +2,8 @@
   (:refer-clojure :exclude (get))
   (:require [clojure.string :as str]
             [clojure.core.async :as a]
-            [clojure.tools.logging :refer (infof errorf)])
+            [clojure.tools.logging :refer (infof errorf)]
+            [clj-ahttp.util :as util])
   (:import (com.ning.http.client AsyncHttpClient
                                  AsyncHttpClientConfig
                                  AsyncHttpClientConfig$Builder
@@ -57,7 +58,7 @@
   :body java.nio.channels.ReadableByteChannel
   :abort! (fn [])}
 
-  :status and :headers will only ever receive one value each.
+  :status and :headers will only ever receive one value each. In case of an exception, e.g., connection refused, deref'ing any of the promises will throw the exception.
 
   A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
@@ -66,9 +67,9 @@
   The body channel must be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests."
 
   [{:keys [request-method uri] :as args}]
-  (let [status (promise)
-        headers (promise)
-        completed (promise)
+  (let [status (util/exceptional-promise)
+        headers (util/exceptional-promise)
+        completed (util/exceptional-promise)
         throwable (promise)
         pipe (Pipe/open)
         source (.source pipe)
@@ -90,7 +91,11 @@
                        (onThrowable [this t]
                          (println "throwable:" t)
                          (errorf throwable "error during request")
-                         (deliver throwable t))
+
+                         (deliver throwable t)
+                         (deliver status t)
+                         (deliver headers t)
+                         (deliver completed t))
                        (onStatusReceived [this s]
                          (deliver status (.getStatusCode s))
                          (return-state))

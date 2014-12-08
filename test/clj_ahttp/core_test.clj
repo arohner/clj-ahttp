@@ -14,4 +14,7 @@
 
 (deftest throwable
   (let [resp (clj-ahttp.core/get "http://bogus.server")]
-    (is (realized? (:throwable resp)))))
+    (is (realized? (:throwable resp)))
+    (is (thrown? Exception @(:status resp)))
+    (is (thrown? Exception @(:headers resp)))
+    (is @(:throwable resp))))
