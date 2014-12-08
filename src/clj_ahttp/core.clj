@@ -69,6 +69,7 @@
   (let [status (promise)
         headers (promise)
         completed (promise)
+        throwable (promise)
         pipe (Pipe/open)
         source (.source pipe)
         sink (.sink pipe)
@@ -79,15 +80,17 @@
                          AsyncHandler$STATE/CONTINUE))
         resp {:status status
               :headers headers
+              :throwable throwable
               :body source
               :abort! (fn []
                         (swap! abort (constantly true)))
               :completed completed}]
     (.executeRequest ^AsyncHttpClient client (build-request args)
                      (reify AsyncHandler
-                       (onThrowable [this throwable]
+                       (onThrowable [this t]
+                         (println "throwable:" t)
                          (errorf throwable "error during request")
-                         (throw throwable))
+                         (deliver throwable t))
                        (onStatusReceived [this s]
                          (deliver status (.getStatusCode s))
                          (return-state))
