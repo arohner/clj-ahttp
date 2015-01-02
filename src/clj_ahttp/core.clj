@@ -2,7 +2,6 @@
   (:refer-clojure :exclude (get))
   (:require [clojure.string :as str]
             [clojure.core.async :as a]
-            [clojure.tools.logging :refer (infof errorf)]
             [clj-ahttp.util :as util])
   (:import (com.ning.http.client AsyncHttpClient
                                  AsyncHttpClientConfig
