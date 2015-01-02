@@ -43,15 +43,26 @@
 (defn ^AsyncHttpClient new-client
   "Returns a new Client. options:
 
- connection-pooling? - boolean. http keepalive
- idle-timeout: (in ms). When using connection pooling, remove after timeout"
+ connection-pooling? - boolean. Pool and reuse connections. (a.k.a http keepalive)
+ idle-timeout: (in ms). When using connection pooling, close after timeout
+ connection-timeout: (in ms)
+ follow-redirects? - boolean.
+
+ When using multiple clients, .close'ing them is a good idea.
+ "
   [& [{:keys [connection-pooling?
-              idle-timeout]}]]
+              idle-timeout
+              connection-timeout
+              follow-redirects?]}]]
   (let [builder (AsyncHttpClientConfig$Builder.)]
     (when (not (nil? connection-pooling?))
       (.setAllowPoolingConnection builder connection-pooling?))
     (when idle-timeout
       (.setIdleConnectionInPoolTimeoutInMs builder idle-timeout))
+    (when connection-timeout
+      (.setConnectionTimeoutInMs builder connection-timeout))
+    (when (not (nil? follow-redirects?))
+      (.setFollowRedirects builder follow-redirects?))
     (let [config (.build builder)]
       (AsyncHttpClient. config))))
 
