@@ -55,7 +55,7 @@
     (let [config (.build builder)]
       (AsyncHttpClient. config))))
 
-(def default-client (AsyncHttpClient. (client-config)))
+(def default-client (new-client))
 
 (defn request
   "Makes an async http request. Behaves similar to clj-http, except the return type is
