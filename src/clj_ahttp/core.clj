@@ -88,9 +88,6 @@
     (.executeRequest ^AsyncHttpClient client (build-request args)
                      (reify AsyncHandler
                        (onThrowable [this t]
-                         (println "throwable:" t)
-                         (errorf throwable "error during request")
-
                          (deliver throwable t)
                          (deliver status t)
                          (deliver headers t)
