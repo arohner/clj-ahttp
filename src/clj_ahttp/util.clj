@@ -19,8 +19,8 @@
         [_ timeout-ms timeout-val]
         (if (.await d timeout-ms java.util.concurrent.TimeUnit/MILLISECONDS)
           (if (instance? Exception @v)
-                              (throw @v)
-                              @v)
+            (throw @v)
+            @v)
           timeout-val))
       clojure.lang.IPending
       (isRealized [this]

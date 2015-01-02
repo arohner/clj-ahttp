@@ -31,7 +31,7 @@
 
 (defn request
   "Async HTTP request. Mostly compatible w/ clj-http."
-  [{:keys [uri request-method headers] :as args}]
+  [{:keys [url request-method headers] :as args}]
   (let [c (AsyncHttpClient.)]
     (.executeRequest c (build-request args))))
 
@@ -58,7 +58,7 @@
   :body java.nio.channels.ReadableByteChannel
   :abort! (fn [])}
 
-  :status and :headers will only ever receive one value each. In case of an exception, e.g., connection refused, deref'ing any of the promises will throw the exception.
+  In case of an exception, e.g., connection refused, deref'ing any of the promises will throw the exception.
 
   A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
@@ -130,7 +130,7 @@
             (recur))
           (throw (java.nio.BufferOverflowException "out of space")))))))
 
-(defn get [uri & [opts]]
+(defn get [url & [opts]]
   (request (merge opts
                   {:request-method :get
-                   :uri uri})))
+                   :url url})))
