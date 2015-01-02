@@ -20,10 +20,10 @@
       name
       str/upper-case))
 
-(defn build-request [{:keys [request-method uri headers] :as args}]
-  (assert (string? uri))
+(defn build-request [{:keys [request-method url headers] :as args}]
+  (assert (string? url))
   (let [builder (RequestBuilder. ^String (request-method->str request-method))]
-    (.setUrl builder ^String uri)
+    (.setUrl builder ^String url)
     (.build builder)))
 
 (defn process-output [{:keys [resp-chan
