@@ -109,23 +109,6 @@
                          (deliver completed true))))
     resp))
 
-(defn drain-resp
-  "Convert to a normal clj-http-style response"
-  [resp]
-  (let [len (-> resp :headers a/<!! (clojure.core/get "Content-Length") (#(Long/parseLong %)))
-        ^ReadableByteChannel body-chan (-> resp :body)
-        buf (ByteBuffer/allocate (* 2 len))]
-    (loop []
-      (let [ret (.read body-chan buf)]
-        (if (.hasRemaining buf)
-          (if (= ret -1)
-            (do
-              (.close body-chan)
-              (.flip buf)
-              buf)
-            (recur))
-          (throw (java.nio.BufferOverflowException "out of space")))))))
-
 (defn get [url & [opts]]
   (request (merge opts
                   {:request-method :get
