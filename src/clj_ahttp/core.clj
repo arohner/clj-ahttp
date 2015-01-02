@@ -40,13 +40,22 @@
               [k (first v)]))
        (into {})))
 
-(defn ^AsyncHttpClientConfig client-config []
-  (let [builder (AsyncHttpClientConfig$Builder.)]
-    (doto builder
-      (.setIdleConnectionInPoolTimeoutInMs 1))
-    (.build builder)))
+(defn ^AsyncHttpClient new-client
+  "Returns a new Client. options:
 
-(def client (AsyncHttpClient. (client-config)))
+ connection-pooling? - boolean. http keepalive
+ idle-timeout: (in ms). When using connection pooling, remove after timeout"
+  [& [{:keys [connection-pooling?
+              idle-timeout]}]]
+  (let [builder (AsyncHttpClientConfig$Builder.)]
+    (when (not (nil? connection-pooling?))
+      (.setAllowPoolingConnection builder connection-pooling?))
+    (when idle-timeout
+      (.setIdleConnectionInPoolTimeoutInMs builder idle-timeout))
+    (let [config (.build builder)]
+      (AsyncHttpClient. config))))
+
+(def default-client (AsyncHttpClient. (client-config)))
 
 (defn request
   "Makes an async http request. Behaves similar to clj-http, except the return type is
@@ -63,9 +72,17 @@
 
   the key :abort! is a fn of no arguments. Call it to abort this request.
 
-  The body channel must be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests."
+  The body channel must be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests.
 
-  [{:keys [request-method uri] :as args}]
+
+  Options:
+
+  :request-method - keyword, same as clj-http
+  :uri - string, same as clj-http
+  :client - optional, a clj-ahttp client, created by #'new-client."
+
+  [{:keys [request-method uri client] :as args
+    :or {client default-client}}]
   (let [status (util/exceptional-promise)
         headers (util/exceptional-promise)
         completed (util/exceptional-promise)
