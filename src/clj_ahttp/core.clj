@@ -43,9 +43,9 @@
 (defn ^AsyncHttpClient new-client
   "Returns a new Client. options:
 
+ connection-timeout: (in ms) Throw if a connection can't be established in N ms
  connection-pooling? - boolean. Pool and reuse connections. (a.k.a http keepalive)
  idle-timeout: (in ms). When using connection pooling, close after timeout
- connection-timeout: (in ms)
  follow-redirects? - boolean.
 
  When using multiple clients, .close'ing them is a good idea.
