@@ -19,7 +19,7 @@
       name
       str/upper-case))
 
-(defn build-request [{:keys [request-method url headers] :as args}]
+(defn build-request [{:keys [request-method url] :as args}]
   (assert (string? url))
   (let [builder (RequestBuilder. ^String (request-method->str request-method))]
     (.setUrl builder ^String url)
