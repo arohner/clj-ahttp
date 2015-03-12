@@ -71,13 +71,18 @@
 (defn request
   "Makes an async http request. Behaves similar to clj-http, except the return type is
 
- {:status (promise Int)
-  :headers (promise {String String})
+ {:status (promise (t/Option Int)
+  :headers (promise (t/Option {String String})
   :completed (promise Bool)
+  :throwable (promise (t/Option Throwable))
   :body java.nio.channels.ReadableByteChannel
   :abort! (fn [])}
 
-  In case of an exception, e.g., connection refused, deref'ing any of the promises will throw the exception.
+  In case of an exception, e.g., connection refused, the :throwable
+  promise will be delivered with the exception. All other promises
+  will be delivered with nil.
+
+  The :completed promise is delivered when the last byte of :body has been transferred.
 
   A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
@@ -94,9 +99,9 @@
 
   [{:keys [request-method uri client] :as args
     :or {client default-client}}]
-  (let [status (util/exceptional-promise)
-        headers (util/exceptional-promise)
-        completed (util/exceptional-promise)
+  (let [status (promise)
+        headers (promise)
+        completed (promise)
         throwable (promise)
         pipe (Pipe/open)
         source (.source pipe)
@@ -117,9 +122,9 @@
                      (reify AsyncHandler
                        (onThrowable [this t]
                          (deliver throwable t)
-                         (deliver status t)
-                         (deliver headers t)
-                         (deliver completed t))
+                         (deliver status nil)
+                         (deliver headers nil)
+                         (deliver completed true))
                        (onStatusReceived [this s]
                          (deliver status (.getStatusCode s))
                          (return-state))

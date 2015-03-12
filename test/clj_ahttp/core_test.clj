@@ -12,9 +12,16 @@
     (is (realized? (:completed resp)))
     (is @(:completed resp))))
 
-(deftest throwable
+(deftest throwable-bogus-server
   (let [resp (clj-ahttp.core/get "http://bogus.server")]
-    (is (realized? (:throwable resp)))
-    (is (thrown? Exception @(:status resp)))
-    (is (thrown? Exception @(:headers resp)))
-    (is @(:throwable resp))))
+    (is @(:throwable resp))
+    (is (nil? @(:status resp)))
+    (is (nil? @(:headers resp)))
+    (is @(:completed resp))))
+
+(deftest throwable-bogus-port
+  (let [resp (clj-ahttp.core/get "http://localhost:9999")]
+    (is @(:throwable resp))
+    (is (nil? @(:status resp)))
+    (is (nil? @(:headers resp)))
+    (is @(:completed resp))))
