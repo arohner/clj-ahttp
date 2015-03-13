@@ -3,13 +3,15 @@
   (:require [clojure.string :as str]
             [clojure.core.async :as a]
             [clj-ahttp.util :as util])
-  (:import (com.ning.http.client AsyncHttpClient
+  (:import java.io.InputStream
+           (com.ning.http.client AsyncHttpClient
                                  AsyncHttpClientConfig
                                  AsyncHttpClientConfig$Builder
                                  AsyncHandler
                                  AsyncHandler$STATE
                                  RequestBuilder
-                                 HttpResponseHeaders)
+                                 HttpResponseHeaders
+                                 generators.InputStreamBodyGenerator)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe
                               ReadableByteChannel)))
@@ -19,10 +21,19 @@
       name
       str/upper-case))
 
-(defn build-request [{:keys [request-method url] :as args}]
+(defn byte-array? [o]
+  (instance? (Class/forName "[B") o))
+
+(defn build-request [{:keys [request-method url body] :as args}]
   (assert (string? url))
   (let [builder (RequestBuilder. ^String (request-method->str request-method))]
     (.setUrl builder ^String url)
+    (when body
+      (cond
+       (string? body) (.setBody builder ^String body)
+       (byte-array? body) (.setBody builder ^bytes body)
+       (instance? InputStream body) (.setBody builder (InputStreamBodyGenerator. body))
+       :else (throw (Exception. (str "don't know how to handle body of type" (class body))))))
     (.build builder)))
 
 (defn process-output [{:keys [resp-chan
@@ -95,9 +106,12 @@
 
   :request-method - keyword, same as clj-http
   :uri - string, same as clj-http
-  :client - optional, a clj-ahttp client, created by #'new-client."
+  :client - optional, a clj-ahttp client, created by #'new-client.
+  :body - input data to send, String, InputStream or byte[]
 
-  [{:keys [request-method uri client] :as args
+"
+
+  [{:keys [request-method uri client body] :as args
     :or {client default-client}}]
   (let [status (promise)
         headers (promise)
