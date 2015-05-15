@@ -67,13 +67,13 @@
               follow-redirects?]}]]
   (let [builder (AsyncHttpClientConfig$Builder.)]
     (when (not (nil? connection-pooling?))
-      (.setAllowPoolingConnection builder connection-pooling?))
+      (.setAllowPoolingConnections builder connection-pooling?))
     (when idle-timeout
       (.setIdleConnectionInPoolTimeoutInMs builder idle-timeout))
     (when connection-timeout
-      (.setConnectionTimeoutInMs builder connection-timeout))
+      (.setConnectTimeout builder connection-timeout))
     (when (not (nil? follow-redirects?))
-      (.setFollowRedirects builder follow-redirects?))
+      (.setFollowRedirect builder follow-redirects?))
     (let [config (.build builder)]
       (AsyncHttpClient. config))))
 
