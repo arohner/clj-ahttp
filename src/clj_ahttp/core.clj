@@ -73,8 +73,8 @@
 
 (defprotocol ToBody
   (to-body
-    "Use the input for the request body"
-    [x builder]))
+    [x builder]
+    "Use the input for the request body"))
 
 (extend-protocol ToBody
   (Class/forName "[B")
