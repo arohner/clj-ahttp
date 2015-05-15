@@ -21,8 +21,56 @@
       name
       str/upper-case))
 
-(defn byte-array? [o]
-  (instance? (Class/forName "[B") o))
+(def end-padding (.getBytes "\r\n"))
+
+(defn read-nio-with-chunking
+  "Implement HTTP chunking ourselves, for the http clients that don't do it natively"
+  [src-chan chunk dest-buf eof-count]
+  {:post [(integer? %)]}
+  (.clear chunk)
+  (let [put-chunk (fn [src-buf dest-buf]
+                    (.put dest-buf (-> (Integer/toHexString (.limit src-buf)) .getBytes))
+                    (.put dest-buf end-padding)
+                    (.put dest-buf chunk)
+                    (.put dest-buf end-padding))
+        read (.read src-chan chunk)]
+    (if (pos? read)
+      (.limit chunk read)
+      (.limit chunk 0))
+    (.rewind chunk)
+    (cond
+      (> read 0) (do
+                   (put-chunk chunk dest-buf)
+                   read)
+      (= read 0) 0
+      (= read -1) (do
+                    (swap! eof-count inc)
+                    (cond
+                      (= @eof-count 1) (do
+                                         ;; put an empty chunk
+                                         (put-chunk chunk dest-buf)
+                                         (.position dest-buf))
+                      :else -1)))))
+
+(defn nio-byte-body-generator
+  "Given an NIO channel, return a ning.http.client.BodyGenerator"
+  [^ReadableByteChannel chan & [{:keys [nio-chunking?]
+                                 :or {nio-chunking? true}}]]
+  (let [chunk-size 1024
+        chunk (ByteBuffer/allocate chunk-size)
+        eof-count (atom 0)]
+    (reify com.ning.http.client.BodyGenerator
+      (createBody [this]
+        (reify com.ning.http.client.Body
+          (close [this]
+            (.close chan))
+          (getContentLength [this]
+            -1)
+          (read [this dest-buf]
+            (if nio-chunking?
+              (read-nio-with-chunking chan chunk dest-buf eof-count)
+              (.read chan dest-buf))))))))
+
 (defprotocol ToBody
   (to-body
     "Use the input for the request body"
@@ -37,8 +85,10 @@
     (.setBody builder ^String str))
   InputStream
   (to-body [is builder]
-    (.setBody builder (InputStreamBodyGenerator. is))))
-
+    (.setBody builder (InputStreamBodyGenerator. is)))
+  ReadableByteChannel
+  (to-body [rbc builder]
+           (.setBody builder ^BodyGenerator (nio-byte-body-generator rbc))))
 
 (defn build-request [{:keys [request-method url body] :as args}]
   (assert (string? url))
