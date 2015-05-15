@@ -23,17 +23,29 @@
 
 (defn byte-array? [o]
   (instance? (Class/forName "[B") o))
+(defprotocol ToBody
+  (to-body
+    "Use the input for the request body"
+    [x builder]))
+
+(extend-protocol ToBody
+  (Class/forName "[B")
+  (to-body [byte-arr builder]
+    (.setBody builder ^bytes byte-arr))
+  String
+  (to-body [str ^RequestBuilder builder]
+    (.setBody builder ^String str))
+  InputStream
+  (to-body [is builder]
+    (.setBody builder (InputStreamBodyGenerator. is))))
+
 
 (defn build-request [{:keys [request-method url body] :as args}]
   (assert (string? url))
   (let [builder (RequestBuilder. ^String (request-method->str request-method))]
     (.setUrl builder ^String url)
     (when body
-      (cond
-       (string? body) (.setBody builder ^String body)
-       (byte-array? body) (.setBody builder ^bytes body)
-       (instance? InputStream body) (.setBody builder (InputStreamBodyGenerator. body))
-       :else (throw (Exception. (str "don't know how to handle body of type" (class body))))))
+      (to-body body builder))
     (.build builder)))
 
 (defn process-output [{:keys [resp-chan
