@@ -155,21 +155,22 @@
   promise will be delivered with the exception. All other promises
   will be delivered with nil.
 
-  The :completed promise is delivered when the last byte of :body has been transferred.
+  The :completed promise is delivered when the last byte of the response :body has been transferred.
 
   A response map is returned immediately, potentially even before the server has sent an HTTP status.
 
-  the key :abort! is a fn of no arguments. Call it to abort this request.
+  the key :abort! is a fn of no arguments. Call it to abort this
+  request, potentially even when the response is in
+  progress. i.e. after reading status, before receiving body.
 
   The body channel must be (.close)'d when done. Failing to close can lead to hangs on future clj-ahttp requests.
-
 
   Options:
 
   :request-method - keyword, same as clj-http
   :uri - string, same as clj-http
   :client - optional, a clj-ahttp client, created by #'new-client.
-  :body - input data to send, String, InputStream or byte[]
+  :body - input data to send in the body, an instance of the ToBody protocol: String, InputStream, byte[], NIO Readable ByteChannel.
 
 "
 
