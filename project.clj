@@ -1,4 +1,4 @@
-(defproject clj-ahttp "0.2.3"
+(defproject clj-ahttp "0.3.1-SNAPSHOT"
   :description "async + NIO http client"
   :url "https://github.com/arohner/clj-ahttp"
   :dependencies [[com.ning/async-http-client "1.9.23"]
