@@ -131,7 +131,7 @@
     (when (not (nil? connection-pooling?))
       (.setAllowPoolingConnections builder connection-pooling?))
     (when idle-timeout
-      (.setIdleConnectionInPoolTimeoutInMs builder idle-timeout))
+      (.setPooledConnectionIdleTimeout builder idle-timeout))
     (when connection-timeout
       (.setConnectTimeout builder connection-timeout))
     (when (not (nil? follow-redirects?))
