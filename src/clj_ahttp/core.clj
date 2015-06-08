@@ -9,6 +9,7 @@
                                  AsyncHttpClientConfig$Builder
                                  AsyncHandler
                                  AsyncHandler$STATE
+                                 BodyGenerator
                                  RequestBuilder
                                  HttpResponseHeaders
                                  generators.InputStreamBodyGenerator)
@@ -21,14 +22,14 @@
       name
       str/upper-case))
 
-(def end-padding (.getBytes "\r\n"))
+(def ^"[B" end-padding (.getBytes "\r\n"))
 
 (defn read-nio-with-chunking
   "Implement HTTP chunking ourselves, for the http clients that don't do it natively"
-  [src-chan chunk dest-buf eof-count]
+  [^ReadableByteChannel src-chan ^ByteBuffer chunk ^ByteBuffer dest-buf eof-count]
   {:post [(integer? %)]}
   (.clear chunk)
-  (let [put-chunk (fn [src-buf dest-buf]
+  (let [put-chunk (fn [^ByteBuffer src-buf ^ByteBuffer dest-buf]
                     (.put dest-buf (-> (Integer/toHexString (.limit src-buf)) .getBytes))
                     (.put dest-buf end-padding)
                     (.put dest-buf chunk)
@@ -78,16 +79,16 @@
 
 (extend-protocol ToBody
   (Class/forName "[B")
-  (to-body [byte-arr builder]
-    (.setBody builder ^bytes byte-arr))
+  (to-body [byte-arr ^RequestBuilder builder]
+    (.setBody builder ^"[B" byte-arr))
   String
   (to-body [str ^RequestBuilder builder]
     (.setBody builder ^String str))
   InputStream
-  (to-body [is builder]
+  (to-body [is ^RequestBuilder builder]
     (.setBody builder (InputStreamBodyGenerator. is)))
   ReadableByteChannel
-  (to-body [rbc builder]
+  (to-body [rbc ^RequestBuilder builder]
            (.setBody builder ^BodyGenerator (nio-byte-body-generator rbc))))
 
 (defn build-request [{:keys [request-method url body] :as args}]
